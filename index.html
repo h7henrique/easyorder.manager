@@ -1093,6 +1093,33 @@
                 const h = Math.floor(diffMin / 60);
                 const m = diffMin % 60;
                 return `${h}h ${m}min`;
+            },
+            formatItems(itens) {
+                if (!itens) return 'Itens não informados.';
+
+                let lista = itens;
+
+                if (typeof itens === 'string') {
+                    try {
+                        lista = JSON.parse(itens);
+                    } catch (_) {
+                        return this.escapeHtml(itens);
+                    }
+                }
+
+                if (!Array.isArray(lista)) {
+                    return this.escapeHtml(JSON.stringify(lista, null, 2));
+                }
+
+                if (!lista.length) return 'Itens não informados.';
+
+                return lista.map(item => {
+                    const nome = item.name || item.nome || item.produto || 'Item';
+                    const qtd = item.qty || item.quantidade || item.qtd || 1;
+                    const preco = Number(item.price || item.preco || 0);
+                    const precoTxt = preco > 0 ? ` • ${this.money(preco)}` : '';
+                    return `${this.escapeHtml(nome)} x${qtd}${precoTxt}`;
+                }).join('<br>');
             }
         };
 
@@ -1167,7 +1194,7 @@
                     const filtered = state.orders.filter(order => {
                         if (order.status !== col) return false;
                         if (!search) return true;
-                        const hay = `${order.id} ${order.cliente_nome || ''} ${order.itens || ''}`.toLowerCase();
+                        const hay = `${order.id} ${order.cliente_nome || ''} ${JSON.stringify(order.itens || '')}`.toLowerCase();
                         return hay.includes(search);
                     });
 
@@ -1182,7 +1209,7 @@
                 const nextStep = ORDER_FLOW[order.status];
                 const timeTag = UI.timeAgo(order.created_at);
                 const notified = order.notificado_preparo || order.notificado_entrega;
-                const items = UI.escapeHtml(order.itens || 'Itens não informados.');
+                const items = UI.formatItems(order.itens);
 
                 return `
           <article class="order-card">
@@ -1226,7 +1253,7 @@
               <div><b>Status:</b> ${UI.escapeHtml(order.status || '-')}</div>
               <div><b>Total:</b> ${UI.money(order.total)}</div>
               <div><b>Telefone:</b> ${UI.escapeHtml(order.cliente_zap || '-')}</div>
-              <div><b>Itens:</b><br><div style="margin-top:6px;padding:10px;border:1px solid #303541;border-radius:12px;background:#0f1319;">${UI.escapeHtml(order.itens || '-')}</div></div>
+              <div><b>Itens:</b><br><div style="margin-top:6px;padding:10px;border:1px solid #303541;border-radius:12px;background:#0f1319;">${UI.formatItems(order.itens)}</div></div>
             </div>
           `,
                     background: '#111318',
